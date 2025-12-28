@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graphique Google Sheets</title>
+    <title>Graphiques Google Sheets</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
@@ -16,78 +16,137 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.2em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
         }
         
         .chart-container {
             background: white;
-            padding: 40px;
+            padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            max-width: 900px;
-            width: 100%;
         }
         
-        h1 {
+        .chart-title {
             color: #667eea;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
-            font-size: 1.8em;
+            font-size: 1.4em;
+            font-weight: 600;
         }
         
-        #chartCanvas {
-            max-height: 500px;
+        canvas {
+            max-height: 400px;
         }
         
         .loading {
             text-align: center;
             color: #667eea;
-            font-size: 1.2em;
-            padding: 50px;
+            font-size: 1.1em;
+            padding: 50px 20px;
         }
         
         .error {
             background: #f8d7da;
             color: #721c24;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             border-left: 4px solid #f5c6cb;
+            font-size: 0.9em;
         }
         
         .update-time {
             text-align: center;
-            color: #666;
-            margin-top: 20px;
-            font-size: 0.9em;
+            color: white;
+            margin-top: 30px;
+            font-size: 0.95em;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="chart-container">
-        <h1>📊 Graphique en Barres</h1>
-        <div id="content">
-            <div class="loading">Chargement des données...</div>
+    <div class="container">
+        <h1>📊 Graphiques de Durée</h1>
+        
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h2 class="chart-title">Premier Graphique</h2>
+                <div id="content1">
+                    <div class="loading">Chargement des données...</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 class="chart-title">Deuxième Graphique</h2>
+                <div id="content2">
+                    <div class="loading">Chargement des données...</div>
+                </div>
+            </div>
         </div>
+        
         <div id="updateTime" class="update-time"></div>
     </div>
 
     <script>
         // ⚙️ CONFIGURATION - Modifiez ces valeurs
-        const SHEET_ID = '12InlEK0gBMuC_tXd4Y4hSZnSxUsyZ-Lt';  // Remplacez par l'ID de votre Google Sheet
-        const SHEET_NAME = 'Lucas';  // Nom de la feuille (onglet)
+        const CHARTS_CONFIG = [
+            {
+                sheetId: '1u72tkTjZC9J6Yvo_C6FpUM23NJ5kIHljUhLX9jcum08',  // Premier Google Sheet
+                sheetName: 'Caca',
+                title: 'Gabriel',
+                color: 'rgba(102, 126, 234, 0.8)'  // Violet
+            },
+            {
+                sheetId: '12InlEK0gBMuC_tXd4Y4hSZnSxUsyZ-Lt',  // Deuxième Google Sheet
+                sheetName: 'Lucas',
+                title: 'Lucas',
+                color: 'rgba(244, 114, 182, 0.8)'  // Rose
+            }
+        ];
         
-        let chart = null;
+        const charts = [null, null];
         
-        async function loadData() {
-            const contentDiv = document.getElementById('content');
+        async function loadAllData() {
+            const promises = CHARTS_CONFIG.map((config, index) => 
+                loadData(config, index)
+            );
+            
+            await Promise.all(promises);
+            
+            document.getElementById('updateTime').textContent = 
+                'Dernière mise à jour : ' + new Date().toLocaleString('fr-FR');
+        }
+        
+        async function loadData(config, chartIndex) {
+            const contentDiv = document.getElementById(`content${chartIndex + 1}`);
             
             try {
-                // Construire l'URL pour récupérer les colonnes I et J, lignes 2 à 17
-                const range = `${SHEET_NAME}!I2:J17`;
-                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&range=${encodeURIComponent(range)}`;
+                const range = `${config.sheetName}!I2:J17`;
+                const url = `https://docs.google.com/spreadsheets/d/${config.sheetId}/gviz/tq?tqx=out:json&range=${encodeURIComponent(range)}`;
                 
                 const response = await fetch(url);
                 
@@ -96,8 +155,6 @@
                 }
                 
                 const text = await response.text();
-                
-                // Parser la réponse JSONP
                 const jsonData = JSON.parse(text.substring(47).slice(0, -2));
                 
                 if (!jsonData.table || !jsonData.table.rows || jsonData.table.rows.length === 0) {
@@ -110,21 +167,18 @@
                 
                 jsonData.table.rows.forEach(row => {
                     if (row.c && row.c.length >= 2) {
-                        // Gérer les durées (Google Sheets stocke les durées en fraction de jours)
                         let label = row.c[0] ? row.c[0].v : '';
                         
-                        // Si c'est un nombre (durée stockée en jours), convertir en heures
+                        // Gérer les durées
                         if (typeof label === 'number') {
                             const totalHours = Math.round(label * 24);
                             label = `${String(totalHours).padStart(2, '0')}h`;
                         } else if (label && typeof label === 'object' && label.constructor.name === 'Date') {
-                            // Si c'est un objet Date, calculer les heures depuis minuit du 30/12/1899
                             const baseDate = new Date(1899, 11, 30, 0, 0, 0);
                             const diffMs = label - baseDate;
                             const totalHours = Math.round(diffMs / (1000 * 60 * 60));
                             label = `${String(totalHours).padStart(2, '0')}h`;
                         } else if (typeof label === 'string' && label.startsWith('Date(')) {
-                            // Parser le format Date(1899,11,30,H,M,S) et calculer les heures totales
                             const match = label.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
                             if (match) {
                                 const year = parseInt(match[1]);
@@ -134,7 +188,6 @@
                                 const minutes = parseInt(match[5]);
                                 const seconds = parseInt(match[6]);
                                 
-                                // Calculer le nombre de jours depuis le 30/12/1899
                                 const days = day - 30;
                                 const totalHours = (days * 24) + hours + (minutes / 60) + (seconds / 3600);
                                 label = `${String(Math.round(totalHours)).padStart(2, '0')}h`;
@@ -147,12 +200,7 @@
                     }
                 });
                 
-                // Créer le graphique
-                createChart(labels, data);
-                
-                // Afficher l'heure de mise à jour
-                document.getElementById('updateTime').textContent = 
-                    'Dernière mise à jour : ' + new Date().toLocaleString('fr-FR');
+                createChart(labels, data, config, chartIndex);
                 
             } catch (error) {
                 contentDiv.innerHTML = `
@@ -161,37 +209,35 @@
                         <br><br>
                         <strong>Vérifications :</strong>
                         <ul style="margin-top: 10px; margin-left: 20px;">
-                            <li>Le Google Sheet est-il publié sur le web ?</li>
-                            <li>L'ID du Sheet est-il correct dans le code ?</li>
-                            <li>Les données existent-elles dans I2:J17 ?</li>
+                            <li>Le Google Sheet est-il publié ?</li>
+                            <li>L'ID du Sheet est-il correct ?</li>
+                            <li>Les données existent-elles en I2:J17 ?</li>
                         </ul>
                     </div>
                 `;
-                console.error('Erreur détaillée:', error);
+                console.error(`Erreur graphique ${chartIndex + 1}:`, error);
             }
         }
         
-        function createChart(labels, data) {
-            const contentDiv = document.getElementById('content');
-            contentDiv.innerHTML = '<canvas id="chartCanvas"></canvas>';
+        function createChart(labels, data, config, chartIndex) {
+            const contentDiv = document.getElementById(`content${chartIndex + 1}`);
+            contentDiv.innerHTML = `<canvas id="chart${chartIndex + 1}"></canvas>`;
             
-            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            const ctx = document.getElementById(`chart${chartIndex + 1}`).getContext('2d');
             
-            // Détruire le graphique existant s'il y en a un
-            if (chart) {
-                chart.destroy();
+            if (charts[chartIndex]) {
+                charts[chartIndex].destroy();
             }
             
-            // Créer le graphique en barres
-            chart = new Chart(ctx, {
+            charts[chartIndex] = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Valeurs',
                         data: data,
-                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: config.color,
+                        borderColor: config.color.replace('0.8', '1'),
                         borderWidth: 2,
                         borderRadius: 5
                     }]
@@ -232,7 +278,7 @@
                             },
                             ticks: {
                                 font: {
-                                    size: 12
+                                    size: 11
                                 }
                             }
                         }
@@ -241,11 +287,11 @@
             });
         }
         
-        // Charger les données au démarrage
-        loadData();
+        // Charger toutes les données au démarrage
+        loadAllData();
         
         // Actualiser automatiquement toutes les 5 minutes
-        setInterval(loadData, 300000);
+        setInterval(loadAllData, 300000);
     </script>
 </body>
 </html>
