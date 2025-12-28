@@ -110,19 +110,34 @@
                 
                 jsonData.table.rows.forEach(row => {
                     if (row.c && row.c.length >= 2) {
-                        // Gérer les durées (format Date de Google Sheets)
+                        // Gérer les durées (Google Sheets stocke les durées en fraction de jours)
                         let label = row.c[0] ? row.c[0].v : '';
                         
-                        // Si c'est un objet Date, le convertir en format HHh
-                        if (label && typeof label === 'object' && label.constructor.name === 'Date') {
-                            const hours = String(label.getHours()).padStart(2, '0');
-                            label = `${hours}h`;
+                        // Si c'est un nombre (durée stockée en jours), convertir en heures
+                        if (typeof label === 'number') {
+                            const totalHours = Math.round(label * 24);
+                            label = `${String(totalHours).padStart(2, '0')}h`;
+                        } else if (label && typeof label === 'object' && label.constructor.name === 'Date') {
+                            // Si c'est un objet Date, calculer les heures depuis minuit du 30/12/1899
+                            const baseDate = new Date(1899, 11, 30, 0, 0, 0);
+                            const diffMs = label - baseDate;
+                            const totalHours = Math.round(diffMs / (1000 * 60 * 60));
+                            label = `${String(totalHours).padStart(2, '0')}h`;
                         } else if (typeof label === 'string' && label.startsWith('Date(')) {
-                            // Parser le format Date(1899,11,30,6,0,0)
-                            const match = label.match(/Date\(\d+,\d+,\d+,(\d+),(\d+),\d+\)/);
+                            // Parser le format Date(1899,11,30,H,M,S) et calculer les heures totales
+                            const match = label.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
                             if (match) {
-                                const hours = String(match[1]).padStart(2, '0');
-                                label = `${hours}h`;
+                                const year = parseInt(match[1]);
+                                const month = parseInt(match[2]);
+                                const day = parseInt(match[3]);
+                                const hours = parseInt(match[4]);
+                                const minutes = parseInt(match[5]);
+                                const seconds = parseInt(match[6]);
+                                
+                                // Calculer le nombre de jours depuis le 30/12/1899
+                                const days = day - 30;
+                                const totalHours = (days * 24) + hours + (minutes / 60) + (seconds / 3600);
+                                label = `${String(Math.round(totalHours)).padStart(2, '0')}h`;
                             }
                         }
                         
