@@ -110,7 +110,22 @@
                 
                 jsonData.table.rows.forEach(row => {
                     if (row.c && row.c.length >= 2) {
-                        const label = row.c[0] ? (row.c[0].v || '') : '';
+                        // Gérer les durées (format Date de Google Sheets)
+                        let label = row.c[0] ? row.c[0].v : '';
+                        
+                        // Si c'est un objet Date, le convertir en format HHh
+                        if (label && typeof label === 'object' && label.constructor.name === 'Date') {
+                            const hours = String(label.getHours()).padStart(2, '0');
+                            label = `${hours}h`;
+                        } else if (typeof label === 'string' && label.startsWith('Date(')) {
+                            // Parser le format Date(1899,11,30,6,0,0)
+                            const match = label.match(/Date\(\d+,\d+,\d+,(\d+),(\d+),\d+\)/);
+                            if (match) {
+                                const hours = String(match[1]).padStart(2, '0');
+                                label = `${hours}h`;
+                            }
+                        }
+                        
                         const value = row.c[1] ? (row.c[1].v || 0) : 0;
                         labels.push(label);
                         data.push(parseFloat(value) || 0);
