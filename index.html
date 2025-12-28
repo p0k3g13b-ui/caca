@@ -145,7 +145,7 @@
             const contentDiv = document.getElementById(`content${chartIndex + 1}`);
             
             try {
-                const range = `${config.sheetName}!I2:J17`;
+                const range = `${config.sheetName}!J2:K17`;
                 const url = `https://docs.google.com/spreadsheets/d/${config.sheetId}/gviz/tq?tqx=out:json&range=${encodeURIComponent(range)}`;
                 
                 const response = await fetch(url);
